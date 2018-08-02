@@ -20,6 +20,7 @@ int Val     = 0;
 int Val_E   = 0;
 int Val_E_1 = 0;
 int LED     = 7;
+int gsm = 0;
 String comdata = "";//串口上位机数据接收缓存区
 char AT_CMHF[] = "AT+CMGF=0";
 char AT_CMGS[] = "AT+CMGS=39";
@@ -103,11 +104,22 @@ void loop() {
   //一级报警
   //一级报警
   int Gsm_Vaule = digitalRead(GsmPIN);
-  int Gsm_Vaule_1 = !Gsm_Vaule;
-  if (Gsm_Vaule_1 == 1)
+//  int Gsm_Vaule_1 = !Gsm_Vaule;
+  Serial.print("  GSM   ");
+  Serial.print(Gsm_Vaule);
+  Serial.print("  OVER  ");
+//  Serial.print("  GSM_1   ");
+//  Serial.print(Gsm_Vaule_1);
+//  Serial.print("  OVER  ");
+if(millis()>60000)
+ {  if (Gsm_Vaule == 0)
   { //Gsm_Pdu_Yiji();
     Forward();
+  digitalWrite(Buzz, HIGH);
+  delay(100);
+  digitalWrite(Buzz,  LOW);
   }
+ }
 
 
 
@@ -127,7 +139,8 @@ void loop() {
         Forward();
         delay(10);
         Back();
-  *****************************************************/
+        delay(10);
+  ****************************************************/
 }
 
 /************************************模块函数******************************************/
@@ -263,11 +276,23 @@ void Gsm_Pdu_Yiji()
  *****************************/
 void Forward()
 {
+  /*
   digitalWrite(9, HIGH);
   digitalWrite(10, LOW);
   digitalWrite(5, HIGH);
   digitalWrite(6, LOW);
   delay(100);
+*/
+  digitalWrite(9, HIGH);
+  digitalWrite(5, HIGH);
+  digitalWrite(6, LOW);
+  digitalWrite(10, LOW);
+  delay(300);
+  digitalWrite(9, LOW);
+  digitalWrite(5, LOW);
+  digitalWrite(6, LOW);
+  digitalWrite(10, LOW);
+  delay(700);
 
 }
 
@@ -276,11 +301,23 @@ void Forward()
  *****************************/
 void Back()
 {
+/*
   digitalWrite(9, LOW);
   digitalWrite(10, HIGH);
   digitalWrite(5, LOW);
   digitalWrite(6, HIGH);
   delay(100);
+  */
+  digitalWrite(9, LOW);
+  digitalWrite(5, LOW);
+  digitalWrite(6, HIGH);
+  digitalWrite(10,HIGH);
+  delay(300);
+  digitalWrite(9, LOW);
+  digitalWrite(5, LOW);
+  digitalWrite(6, LOW);
+  digitalWrite(10,LOW);
+  delay(700);
 
 }
 
@@ -289,12 +326,16 @@ void Back()
  *****************************/
 void Stop()
 {
-  digitalWrite(9, 0);
-  digitalWrite(10, 0);
-  digitalWrite(5, 0);
-  digitalWrite(6, 0);
+  digitalWrite(9, LOW);
+  digitalWrite(10, LOW);
+  digitalWrite(5, LOW);
+  digitalWrite(6, LOW);
   delay(1000);
 }
+
+
+
+
 
 
 
