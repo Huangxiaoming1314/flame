@@ -32,95 +32,97 @@ uchar Humidity[5]      = {0xff, 0x61, 0x22, 0x00, 0xff}; //湿度
 uchar Temperature[5]   = {0xff, 0x62, 0x22, 0x00, 0xff}; //温度
 uchar Concentration[5] = {0xff, 0x63, 0x22, 0x00, 0xff}; //浓度
 
-//void Forward();
-//void Back();
-//void Stop();
-//void Gsm_Pdu();
+void Forward();
+void Back();
+void Stop();
+void Gsm_Pdu();
 
 
 void setup() {
   // put your setup code here, to run once:
-  mySerial.begin(115200);
-  Serial.begin(9600);
-  pinMode(LED, OUTPUT);
-  pinMode(DHT11PIN, OUTPUT);    //定义DHT11D的输出口
-  pinMode(Elec_2PIN, INPUT);
-  pinMode(Elec_1PIN, INPUT);
-  pinMode(GsmPIN, INPUT);
-  pinMode(Buzz, OUTPUT);
-  Init_Data();
-  MsTimer2::set(1000, flash); //中断设置函数，每1000ms进入一次中断
-  MsTimer2::start();//开始计时
+      mySerial.begin(115200);
+      Serial.begin(9600);
+      pinMode(LED, OUTPUT);
+      pinMode(DHT11PIN, OUTPUT);    //定义DHT11D的输出口
+      pinMode(9,OUTPUT);
+      pinMode(10,OUTPUT);
+      pinMode(5,OUTPUT);
+      pinMode(6,OUTPUT);
+      pinMode(Elec_2PIN, INPUT);
+      pinMode(Elec_1PIN, INPUT);
+      pinMode(GsmPIN, INPUT);
+      pinMode(Buzz, OUTPUT);
+      Init_Data();
+      MsTimer2::set(1000, flash); //中断设置函数，每1000ms进入一次中断
+      MsTimer2::start();//开始计时
 
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   //串口从上位机接收数据
-  Stop();
-
+//  Stop();
+//
   while (Serial.available() > 0)
   {
     comdata += char(Serial.read()); //一位一位的读取串口数据，串接到comedata
     delay(2);
   }
-  Stop();
-  if (comdata.length() > 0)  //还有数据就继续发送
-  {
-    Serial.println(comdata);
     //前进
-    // while(comdata[3]==0x00)  //判断按键
-    if (comdata[3] == 0x00) //判断按键
+    if (comdata[3] == 0x00) 
     {
       Forward();
     }
     //后退
-    if (comdata[3] == 0x01) //判断按键
+   else if (comdata[3] == 0x01) 
     {
       Back();
     }
     //减速
-    if (comdata[3] == 0x02) //判断按键
+   else if (comdata[3] == 0x02) 
     {
       Stop();
     }
-    //发送PUD短信
-    if (comdata[3] == 0x07) //判断按键
+        //发送PUD短信
+   else if (comdata[3] == 0x07) //判断按键
     {
       // Back();
       delay(1);
       Gsm_Pdu();
-
     }
-    comdata = ""; //数据清空，否则会影响下一次的数据
-  }
-
-  //刷新传感器数据
-  Dht11();
-  MQ_2();
-  Electricity_Display();
-  Electricity_Display_1();
-
-  //一级报警
-  //一级报警
-  int Gsm_Vaule = digitalRead(GsmPIN);
-//  int Gsm_Vaule_1 = !Gsm_Vaule;
-  Serial.print("  GSM   ");
-  Serial.print(Gsm_Vaule);
-  Serial.print("  OVER  ");
-//  Serial.print("  GSM_1   ");
-//  Serial.print(Gsm_Vaule_1);
-//  Serial.print("  OVER  ");
-if(millis()>60000)
- {  if (Gsm_Vaule == 0)
-  { //Gsm_Pdu_Yiji();
+    else
+    { 
     Forward();
-  digitalWrite(Buzz, HIGH);
-  delay(100);
-  digitalWrite(Buzz,  LOW);
-  }
- }
+    }
+     
+//    comdata = ""; //数据清空，否则会影响下一次的数据
 
+//
+//  //刷新传感器数据
+//  Dht11();
+//  MQ_2();
+//  Electricity_Display();
+//  Electricity_Display_1();
+//
+//  //一级报警
+//  int Gsm_Vaule = digitalRead(GsmPIN);
+////  int Gsm_Vaule_1 = !Gsm_Vaule;
+//  Serial.print("  GSM   ");
+//  Serial.print(Gsm_Vaule);
+//  Serial.print("  OVER  ");
+////  Serial.print("  GSM_1   ");
+////  Serial.print(Gsm_Vaule_1);
+////  Serial.print("  OVER  ");
+//if(millis()>60000)
+// {  if (Gsm_Vaule == 0)
+//  { //Gsm_Pdu_Yiji();
+////    Forward();
+//  digitalWrite(Buzz, HIGH);
+//  delay(100);
+//  digitalWrite(Buzz,  LOW);
+//  }
+// }
+//
 
 
   /***************************测试程序**********************************/
@@ -135,12 +137,13 @@ if(millis()>60000)
 //  delay(100);
 //  digitalWrite(Buzz, LOW);
 
-  /**********2018年7月26日测试电机内容*****************
-        Forward();
-        delay(10);
-        Back();
-        delay(10);
-  ****************************************************/
+  /**********2018年7月26日测试电机内容*****************/
+//      if (comdata[3] == 0x07) //判断按键
+//      Back(); 
+//      else
+//      Forward();
+        
+ /****************************************************/
 }
 
 /************************************模块函数******************************************/
@@ -266,7 +269,7 @@ void Gsm_Pdu(void)
 **********************************************/
 void Gsm_Pdu_Yiji()
 {
-  Forward();
+//  Forward();
 }
 
 /***********************************电机驱动**************************/
@@ -276,24 +279,22 @@ void Gsm_Pdu_Yiji()
  *****************************/
 void Forward()
 {
-  /*
   digitalWrite(9, HIGH);
   digitalWrite(10, LOW);
   digitalWrite(5, HIGH);
   digitalWrite(6, LOW);
   delay(100);
-*/
-  digitalWrite(9, HIGH);
-  digitalWrite(5, HIGH);
-  digitalWrite(6, LOW);
-  digitalWrite(10, LOW);
-  delay(300);
-  digitalWrite(9, LOW);
-  digitalWrite(5, LOW);
-  digitalWrite(6, LOW);
-  digitalWrite(10, LOW);
-  delay(700);
 
+//    digitalWrite(9, HIGH);
+//    digitalWrite(5, HIGH);
+//    digitalWrite(6, LOW);
+//    digitalWrite(10, LOW);
+//    delay(900);
+//    digitalWrite(9, LOW);
+//    digitalWrite(5, LOW);
+//    digitalWrite(6, LOW);
+//    digitalWrite(10, LOW);
+//      delay(100);
 }
 
 /*****************************
@@ -332,26 +333,4 @@ void Stop()
   digitalWrite(6, LOW);
   delay(1000);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//
