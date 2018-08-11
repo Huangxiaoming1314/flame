@@ -9,21 +9,24 @@
 #define Elec_1PIN A0       //定义组主电量的引脚为A0
 #define GsmPIN 4           //定义报警引脚为4号数字引脚
 #define Buzz 13
-#define SEND_Message "0011000D91688170387506F70008AA186CB36C605B669662667A80FD63A752365B9E9A8C5BA4FF01"
-
+#define SEND_Message   "0011000D91688170387506F70008AA186CB36C605B669662667A80FD63A752365B9E9A8C5BA4FF01" //河池学院智能控制实验室
+#define SEND_Message_1 "0011000D91688170387506F70008AA144E007EA78B6662A5FF0C53D173B0706B60C5FF01"//一级警报，发现火情！
 dht11 DHT11;                    //实例化一个对象
 SoftwareSerial mySerial(2, 3);   //定义一个软串口 2RX 3TX
 
-int Hum = 0; //湿度
-int Temp = 0; //温度
+int Hum     = 0; //湿度
+int Temp    = 0; //温度
 int Val     = 0;
 int Val_E   = 0;
 int Val_E_1 = 0;
 int LED     = 7;
-int gsm = 0;
-String comdata = "";//串口上位机数据接收缓存区
-char AT_CMHF[] = "AT+CMGF=0";
-char AT_CMGS[] = "AT+CMGS=39";
+int gsm     = 0;
+int State   = 0;
+String comdata   = " ";     //串口上位机数据接收缓存区
+char AT_CMHF[]   = "AT+CMGF=0";
+char AT_CMGS[]   = "AT+CMGS=39";
+char AT_CMGS_1[] = "AT+CMGS=35";
+char ATDCall[]   = "ATD18078357607;";
 
 
 uchar Electricity[5]   = {0xff, 0x60, 0x22, 0x00, 0xff}; //主电量
@@ -36,6 +39,7 @@ void Forward();
 void Back();
 void Stop();
 void Gsm_Pdu();
+void Serial_Receiving();
 
 
 void setup() {
@@ -62,47 +66,52 @@ void loop() {
   // put your main code here, to run repeatedly:
   //串口从上位机接收数据
 //  Stop();
-//
-  while (Serial.available() > 0)
-  {
-    comdata += char(Serial.read()); //一位一位的读取串口数据，串接到comedata
-    delay(2);
-  }
-    //前进
-    if (comdata[3] == 0x00) 
-    {
-      Forward();
-    }
-    //后退
-   else if (comdata[3] == 0x01) 
-    {
+//     while (Serial.available() > 0)  
+//    {
+//        comdata += char(Serial.read()); //一位一位的读取串口数据，串接到comedata
+//        delay(2);
+//    }
+//         Stop();
+//    if (comdata.length() > 0)  //还有数据就继续发送
+//  {
+//    Serial.print("  stata  " );
+//   Serial.print(comdata[3],HEX);
+//   Serial.print("  ss  " );
+//    comdata = ""; //数据清空，否则会影响下一次的数据
+//   }
+
+    Serial_Receiving();
+      //前进
+      while(State == 8)
+      {
+       Forward();
+         Serial_Receiving();
+      }
+      //后退
+      while(State == 1)
+      {
       Back();
-    }
-    //减速
-   else if (comdata[3] == 0x02) 
-    {
+      Serial_Receiving();
+      }
+      //停止
+      while(State == 2)
+      {
       Stop();
-    }
-        //发送PUD短信
-   else if (comdata[3] == 0x07) //判断按键
-    {
+      Serial_Receiving();
+      }
+      //发送PUD短信
+      if (State == 7)
+      {
       // Back();
       delay(1);
       Gsm_Pdu();
-    }
-    else
-    { 
-    Forward();
-    }
-     
-//    comdata = ""; //数据清空，否则会影响下一次的数据
+      }
 
-//
-//  //刷新传感器数据
-//  Dht11();
-//  MQ_2();
-//  Electricity_Display();
-//  Electricity_Display_1();
+  //刷新传感器数据
+  Dht11();
+  MQ_2();
+  Electricity_Display();
+  Electricity_Display_1();
 //
 //  //一级报警
 //  int Gsm_Vaule = digitalRead(GsmPIN);
@@ -125,7 +134,7 @@ void loop() {
 //
 
 
-  /***************************测试程序**********************************/
+  /***************************测试程序****************************************************************************************/
   //测试软串口接收到的数据
   //      if(mySerial.available()>0)
   //     {
@@ -143,7 +152,19 @@ void loop() {
 //      else
 //      Forward();
         
- /****************************************************/
+ /*********************************************************************************************************************************/
+ 
+}
+
+void Serial_Receiving()
+{
+    while (Serial.available() > 0)
+  {
+    comdata += char(Serial.read()); //一位一位的读取串口数据，串接到comedata
+    delay(2);
+  }
+    State = comdata[3];
+    comdata = ""; //数据清空，否则会影响下一次的数据  
 }
 
 /************************************模块函数******************************************/
@@ -186,8 +207,8 @@ void MQ_2()
 {
   int val = analogRead(MQ_2PIN); //读取模拟脚的数据
   Val = (val / 10.24);
-  Serial.print("val=");
-  Serial.println(Val, DEC); //输出十进制
+//  Serial.print("val=");
+//  Serial.println(Val, DEC); //输出十进制
   delay(100);
 }
 
@@ -197,16 +218,15 @@ void MQ_2()
 void Dht11()
 {
   int chk = DHT11.read(DHT11PIN);                 //将读取到的值赋给chk
-
   Temp = (float)DHT11.temperature;             //将温度值赋值给 result[0]
   Hum = (float)DHT11.humidity;                 //将湿度值赋给 result[1]
-  Serial.print("Tempeature:");                        //打印出Tempeature:
-  Serial.println(Temp);                                     //打印温度结果
-
-  Serial.print("Humidity:");                            //打印出Humidity:
-  Serial.print(Hum);                                     //打印出湿度结果
-  Serial.println("%");                                  //打印出%
-  delay(1000);                                       //延时一段时间
+//  Serial.print("Tempeature:");                        //打印出Tempeature:
+//  Serial.println(Temp);                                     //打印温度结果
+//
+//  Serial.print("Humidity:");                            //打印出Humidity:
+//  Serial.print(Hum);                                     //打印出湿度结果
+//  Serial.println("%");                                  //打印出%
+//  delay(1000);                                       //延时一段时间
 }
 
 /*****************************
@@ -217,15 +237,15 @@ void Electricity_Display()
   float val   = analogRead(Elec_1PIN);
   float val1  = (val * 5.2 / 1023 + 1.2); //将15V电压转化为5V为基准电压
   Val_E = val1 / 5.2 * 100; //电量百分比
-  Serial.print("模拟量:");
-  Serial.print(val);
-  Serial.print("\t");
-  Serial.print("主电压:");
-  Serial.print(val1);
-  Serial.print("\t");
-  Serial.print("电量百分比:");
-  Serial.println(Val_E);
-  delay(1000);
+//  Serial.print("模拟量:");
+//  Serial.print(val);
+//  Serial.print("\t");
+//  Serial.print("主电压:");
+//  Serial.print(val1);
+//  Serial.print("\t");
+//  Serial.print("电量百分比:");
+//  Serial.println(Val_E);
+//  delay(1000);
 }
 
 /*****************************
@@ -236,15 +256,15 @@ void Electricity_Display_1()
   float val_1   = analogRead(A1);
   float val1_1  = (val_1 * 5 / 1023 + 0.8); ////将10V电压转化为5V为基准电压
   Val_E_1 = val1_1 / 5 * 100; //电量百分比
-  Serial.print(" 模拟量: ");
-  Serial.print(val_1);
-  Serial.print("\t");
-  Serial.print(" 副电压: ");
-  Serial.print(val1_1);
-  Serial.print("\t");
-  Serial.print(" 电量百分比: ");
-  Serial.println(Val_E_1);
-  delay(1000);
+//  Serial.print(" 模拟量: ");
+//  Serial.print(val_1);
+//  Serial.print("\t");
+//  Serial.print(" 副电压: ");
+//  Serial.print(val1_1);
+//  Serial.print("\t");
+//  Serial.print(" 电量百分比: ");
+//  Serial.println(Val_E_1);
+//  delay(1000);
 }
 
 /****************************
@@ -262,6 +282,15 @@ void Gsm_Pdu(void)
   delay(1000);
   mySerial.write(0x1A); //或者 Serial.print("\x01A");
   delay(100);
+}
+
+/****************************
+   电话呼叫
+ ****************************/
+void GPRS_Call(void)
+{
+  mySerial.println(ATDCall);
+  delay(2000); 
 }
 
 /**********************************************
@@ -302,24 +331,21 @@ void Forward()
  *****************************/
 void Back()
 {
-/*
   digitalWrite(9, LOW);
   digitalWrite(10, HIGH);
   digitalWrite(5, LOW);
   digitalWrite(6, HIGH);
   delay(100);
-  */
-  digitalWrite(9, LOW);
-  digitalWrite(5, LOW);
-  digitalWrite(6, HIGH);
-  digitalWrite(10,HIGH);
-  delay(300);
-  digitalWrite(9, LOW);
-  digitalWrite(5, LOW);
-  digitalWrite(6, LOW);
-  digitalWrite(10,LOW);
-  delay(700);
-
+//  digitalWrite(9, LOW);
+//  digitalWrite(5, LOW);
+//  digitalWrite(6, HIGH);
+//  digitalWrite(10,HIGH);
+//  delay(300);
+//  digitalWrite(9, LOW);
+//  digitalWrite(5, LOW);
+//  digitalWrite(6, LOW);
+//  digitalWrite(10,LOW);
+//  delay(700);
 }
 
 /*****************************
@@ -334,3 +360,6 @@ void Stop()
   delay(1000);
 }
 //
+
+
+
