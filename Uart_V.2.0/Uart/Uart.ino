@@ -11,6 +11,8 @@
 #define Buzz 13
 #define SEND_Message   "0011000D91688170387506F70008AA186CB36C605B669662667A80FD63A752365B9E9A8C5BA4FF01" //河池学院智能控制实验室
 #define SEND_Message_1 "0011000D91688170387506F70008AA144E007EA78B6662A5FF0C53D173B0706B60C5FF01"//一级警报，发现火情！
+#define ATDCall "ATD18078357607;\r\n"
+
 dht11 DHT11;                    //实例化一个对象
 SoftwareSerial mySerial(2, 3);   //定义一个软串口 2RX 3TX
 
@@ -28,7 +30,7 @@ String comdata   = " ";     //串口上位机数据接收缓存区
 char AT_CMHF[]   = "AT+CMGF=0";
 char AT_CMGS[]   = "AT+CMGS=39";
 char AT_CMGS_1[] = "AT+CMGS=35";
-char ATDCall[]   = "ATD18078357607;";
+//char ATDCall[]   = "ATD18078357607;";
 
 
 uchar Electricity[5]   = {0xff, 0x60, 0x22, 0x00, 0xff}; //主电量
@@ -36,6 +38,7 @@ uchar Electricity_1[5] = {0xff, 0x64, 0x22, 0x00, 0xff}; //副电量
 uchar Humidity[5]      = {0xff, 0x61, 0x22, 0x00, 0xff}; //湿度
 uchar Temperature[5]   = {0xff, 0x62, 0x22, 0x00, 0xff}; //温度
 uchar Concentration[5] = {0xff, 0x63, 0x22, 0x00, 0xff}; //浓度
+uchar Pictures[5]      = {0xff, 0x89, 0x06, 0x00, 0xff}; //抓取现场图像
 
 //void Forward();
 //void Back();
@@ -70,12 +73,13 @@ void loop() {
   if(flag == 0)
   {
       Stop(20);
-     Forward_count(18);
-      Stop(1);
-      Turn_right(9);
-      Stop(1);
-      Forward_count(13);
-      Stop(100);
+      
+//     Forward_count(13);
+//      Stop(1);
+//      Turn_right(9);
+//      Stop(1);
+//      Forward_count(13);
+//      Stop(100);
       flag++;
   }
   
@@ -103,16 +107,17 @@ void loop() {
   int Gsm_Vaule = digitalRead(GsmPIN);
   if (Gsm_Vaule == 0)
   {
-    if (gsm_count < 0)
+    if (gsm_count < 1)
     {
       delay(1);
-      Gsm_Pdu();
+//      Gsm_Pdu();
       gsm_count++;
       State = 2;
+      Serial.write(Pictures, 5);
     }
   }
 
-  if (Val == 50 && Temp == 60)
+  if (Val == 40 && Temp == 40)
   {
     GPRS_Call();
   }
@@ -248,8 +253,8 @@ void Dht11()
 void Electricity_Display()
 {
   float val   = analogRead(Elec_1PIN);
-  float val1  = (val * 5.2 / 1023 + 1.2); //将15V电压转化为5V为基准电压
-  Val_E = val1 / 5.2 * 100; //电量百分比
+  float val1  = (val * 5.6 / 1023 + 1.2); //将15V电压转化为5V为基准电压
+  Val_E = val1 / 5.6 * 100; //电量百分比
   //  Serial.print("模拟量:");
   //  Serial.print(val);
   //  Serial.print("\t");
@@ -289,9 +294,9 @@ void Gsm_Pdu(void)
   delay(1000);
   mySerial.println(AT_CMHF);
   delay(500);
-  mySerial.println(AT_CMGS);
+  mySerial.println(AT_CMGS_1);
   delay(1000);
-  mySerial.print(SEND_Message); //发送内容：河池学院智能控制实验室
+  mySerial.print(SEND_Message_1); //发送内容：河池学院智能控制实验室
   delay(1000);
   mySerial.write(0x1A); //或者 Serial.print("\x01A");
   delay(100);
