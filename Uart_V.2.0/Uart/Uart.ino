@@ -62,7 +62,7 @@ void setup() {
   pinMode(GsmPIN, INPUT);
   pinMode(Buzz, OUTPUT);
   Init_Data();
-  MsTimer2::set(1000, flash); //中断设置函数，每1000ms进入一次中断
+  MsTimer2::set(3000, flash); //中断设置函数，每1000ms进入一次中断
   MsTimer2::start();//开始计时
 
 }
@@ -72,8 +72,8 @@ void loop() {
   //串口从上位机接收数据
   if(flag == 0)
   {
+//     Forward();
       Stop(20);
-      
 //     Forward_count(13);
 //      Stop(1);
 //      Turn_right(9);
@@ -82,44 +82,68 @@ void loop() {
 //      Stop(100);
       flag++;
   }
-  
-  Serial_Receiving();
-  //前进
-  while (State == 8)
-  {
-    Forward();
-    Serial_Receiving();
-  }
-  //后退
-  while (State == 1)
-  {
-    Back();
-    Serial_Receiving();
-  }
-  //停止
-  while (State == 2)
-  {
-    Stop(10);
-    Serial_Receiving();
-  }
-  // 一级报警,发送PUD短信
+//  else
+//   Stop(20);
 
+  
+       Serial_Receiving();
+  //前进
+//  if(State == 8 || State == 1 || State == 2 )
+// {
+      while (State == 8)
+      {
+        Forward();
+        Serial_Receiving();
+      }
+      //后退
+      while (State == 1)
+      {
+        Back();
+        Serial_Receiving();
+      }
+      //停止
+      while (State == 2)
+      {
+        Stop(10);
+        Serial_Receiving();
+      }
+      // 一级报警,发送PUD短信
+// }
+//   else
+//  { Stop(0);}
+// 
   int Gsm_Vaule = digitalRead(GsmPIN);
   if (Gsm_Vaule == 0)
   {
     if (gsm_count < 1)
     {
       delay(1);
-//      Gsm_Pdu();
-      gsm_count++;
-      State = 2;
+      Gsm_Pdu();
       Serial.write(Pictures, 5);
+       gsm_count++;
+    while (1)
+        {
+          Stop(10);
+            //刷新传感器数据
+          Dht11();
+          MQ_2();
+          Electricity_Display();
+          Electricity_Display_1();
+              if (Val>40 && Temp >30)
+            {
+            GPRS_Call();
+//            Serial.print("Call llllllllllllllllllllllll");
+            }
+        }
+     
+      
     }
   }
 
-  if (Val == 40 && Temp == 40)
+  if (Val>40 && Temp >30)
   {
     GPRS_Call();
+//    Serial.print("Call llllllllllllllllllllllll");
   }
 
   //刷新传感器数据
@@ -147,9 +171,9 @@ void loop() {
   //  //一级报警
   //  int Gsm_Vaule = digitalRead(GsmPIN);
   ////  int Gsm_Vaule_1 = !Gsm_Vaule;
-  //  Serial.print("  GSM   ");
-  //  Serial.print(Gsm_Vaule);
-  //  Serial.print("  OVER  ");
+//    Serial.print("  GSM   ");
+//    Serial.print(Gsm_Vaule);
+//    Serial.print("  OVER  ");
   ////  Serial.print("  GSM_1   ");
   ////  Serial.print(Gsm_Vaule_1);
   ////  Serial.print("  OVER  ");
@@ -225,8 +249,8 @@ void MQ_2()
 {
   int val = analogRead(MQ_2PIN); //读取模拟脚的数据
   Val = (val / 10.24);
-  //  Serial.print("val=");
-  //  Serial.println(Val, DEC); //输出十进制
+//    Serial.print("Val=");
+//    Serial.println(Val, DEC); //输出十进制
   delay(100);
 }
 
@@ -238,8 +262,8 @@ void Dht11()
   int chk = DHT11.read(DHT11PIN);                 //将读取到的值赋给chk
   Temp = (float)DHT11.temperature;             //将温度值赋值给
   Hum  = (float)DHT11.humidity;                 //将湿度值赋给
-  //  Serial.print("Tempeature:");                        //打印出Tempeature:
-  //  Serial.println(Temp);                                     //打印温度结果
+//    Serial.print("Tempeature:");                        //打印出Tempeature:
+//    Serial.println(Temp);                                     //打印温度结果
   //
   //  Serial.print("Humidity:");                            //打印出Humidity:
   //  Serial.print(Hum);                                     //打印出湿度结果
