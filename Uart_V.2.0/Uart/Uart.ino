@@ -1,6 +1,7 @@
 #include <MsTimer2.h> //定时器库的 头文件
 #include <SoftwareSerial.h>
 #include <dht11.h>          //引用dht11库文件，使得下面可以调用相关参数
+#include <Servo.h> 
 
 #define uchar unsigned char
 #define DHT11PIN A3        //定义温湿度针脚号为A3号引脚
@@ -14,7 +15,9 @@
 #define ATDCall "ATD18078357607;\r\n"
 
 dht11 DHT11;                    //实例化一个对象
+Servo myservo;  //创建一个舵机控制对象
 SoftwareSerial mySerial(2, 3);   //定义一个软串口 2RX 3TX
+
 
 int Hum     = 0; //湿度
 int Temp    = 0; //温度
@@ -49,21 +52,22 @@ uchar Pictures[5]      = {0xff, 0x89, 0x06, 0x00, 0xff}; //抓取现场图像
 
 void setup() {
   // put your setup code here, to run once:
-  mySerial.begin(115200);
-  Serial.begin(9600);
-  pinMode(LED, OUTPUT);
-  pinMode(DHT11PIN, OUTPUT);    //定义DHT11D的输出口
-  pinMode(9, OUTPUT);
-  pinMode(10, OUTPUT);
-  pinMode(5, OUTPUT);
-  pinMode(6, OUTPUT);
-  pinMode(Elec_2PIN, INPUT);
-  pinMode(Elec_1PIN, INPUT);
-  pinMode(GsmPIN, INPUT);
-  pinMode(Buzz, OUTPUT);
-  Init_Data();
-  MsTimer2::set(3000, flash); //中断设置函数，每1000ms进入一次中断
-  MsTimer2::start();//开始计时
+    mySerial.begin(115200);
+    Serial.begin(9600);
+    myservo.attach(11);  // 该舵机由arduino第11脚控制
+    pinMode(LED, OUTPUT);
+    pinMode(DHT11PIN, OUTPUT);    //定义DHT11D的输出口
+    pinMode(9, OUTPUT);
+    pinMode(10, OUTPUT);
+    pinMode(5, OUTPUT);
+    pinMode(6, OUTPUT);
+    pinMode(Elec_2PIN, INPUT);
+    pinMode(Elec_1PIN, INPUT);
+    pinMode(GsmPIN, INPUT);
+    pinMode(Buzz, OUTPUT);
+    Init_Data();
+    MsTimer2::set(1000, flash); //中断设置函数，每1000ms进入一次中断
+    MsTimer2::start();//开始计时
 
 }
 
@@ -74,6 +78,7 @@ void loop() {
   {
 //     Forward();
       Stop(20);
+
 //     Forward_count(13);
 //      Stop(1);
 //      Turn_right(9);
@@ -88,8 +93,6 @@ void loop() {
   
        Serial_Receiving();
   //前进
-//  if(State == 8 || State == 1 || State == 2 )
-// {
       while (State == 8)
       {
         Forward();
@@ -107,38 +110,54 @@ void loop() {
         Stop(10);
         Serial_Receiving();
       }
-      // 一级报警,发送PUD短信
-// }
-//   else
-//  { Stop(0);}
-// 
+
+      if(State == 9)
+        { 
+          Steering();
+          State=0;
+        }
+
+ if(millis()>60000)
+ {
   int Gsm_Vaule = digitalRead(GsmPIN);
   if (Gsm_Vaule == 0)
-  {
+  {  
+    int ST = 0;
     if (gsm_count < 1)
     {
       delay(1);
-      Gsm_Pdu();
-      Serial.write(Pictures, 5);
-       gsm_count++;
+//       Gsm_Pdu();
+      gsm_count++;
     while (1)
         {
+//    Serial.print("  GSM   ");
+//    Serial.print(Gsm_Vaule);
+//    Serial.print("  OVER  ");
           Stop(10);
+          if(ST == 0)
+          {
+          Serial.write(Pictures,5);
+          delay(1);
+          Steering(); 
+          ST =1;
+          }
             //刷新传感器数据
           Dht11();
           MQ_2();
           Electricity_Display();
-          Electricity_Display_1();
-              if (Val>40 && Temp >30)
-            {
-            GPRS_Call();
-//            Serial.print("Call llllllllllllllllllllllll");
-            }
+          Electricity_Display_1();    
+          
+          if (Val>30 && Temp >30)
+          {
+          GPRS_Call();
+// Serial.print("Call llllllllllllllllllllllll");
+          }
         }
      
       
     }
   }
+}
 
   if (Val>40 && Temp >30)
   {
@@ -206,6 +225,9 @@ void Serial_Receiving()
     delay(2);
   }
   State = comdata[3];
+  Serial.print("  State  ");
+  Serial.println(State);
+   Serial.print("  OVER  ");
   comdata = ""; //数据清空，否则会影响下一次的数据
 }
 
@@ -217,6 +239,7 @@ void Serial_Receiving()
 void Init_Data()
 {
   Stop(10);
+  myservo.write(30); //初始化摄像头起始位置
   Serial.write(Temperature, 5);
   Serial.write(Humidity, 5);
   Serial.write(Electricity, 5);
@@ -234,7 +257,7 @@ void flash()
   Concentration[2] = Val;  //浓度
   Electricity[2] = Val_E;
   Electricity_1[2] = Val_E_1;
-  delay(100);
+  delay(10);
   Serial.write(Temperature, 5);   //发送一帧温度数据
   Serial.write(Humidity, 5);      //发送一帧湿度数据
   Serial.write(Electricity, 5);   //发送一帧主电量数据
@@ -336,11 +359,26 @@ void GPRS_Call(void)
 }
 
 /**********************************************
-  一级报警：GSM发送火焰报警短信
+  摄像头转向角度
 **********************************************/
-void Gsm_Pdu_Yiji()
+void Steering()
 {
-  //  Forward();
+      myservo.write(0); // 指定舵机转向的角度 
+      delay(650);// 等待15ms让舵机到达指定位置 
+      myservo.write(30); // 指定舵机转向的角度 
+      delay(650);// 等待15ms让舵机到达指定位置 
+      myservo.write(60); // 指定舵机转向的角度 
+      delay(650);// 等待15ms让舵机到达指定位置 
+      myservo.write(90); // 指定舵机转向的角度 
+      delay(650);// 等待15ms让舵机到达指定位置 
+      myservo.write(120); // 指定舵机转向的角度 
+      delay(650);// 等待15ms让舵机到达指定位置 
+      myservo.write(150); // 指定舵机转向的角度 
+      delay(800);// 等待15ms让舵机到达指定位置 
+      myservo.write(180); // 指定舵机转向的角度 
+      delay(1000); // 等待15ms让舵机到达指定位置 
+      myservo.write(30); // 指定舵机转向的角度 
+      delay(650); // 等待15ms让舵机到达指定位置 
 }
 
 /***********************************电机驱动**************************/
@@ -356,16 +394,6 @@ void Forward()
   digitalWrite(6, LOW);
   delay(100);
 
-  //    digitalWrite(9, HIGH);
-  //    digitalWrite(5, HIGH);
-  //    digitalWrite(6, LOW);
-  //    digitalWrite(10, LOW);
-  //    delay(900);
-  //    digitalWrite(9, LOW);
-  //    digitalWrite(5, LOW);
-  //    digitalWrite(6, LOW);
-  //    digitalWrite(10, LOW);
-  //      delay(100);
 }
 
 /*****************************
@@ -435,6 +463,11 @@ void Forward_count(int s1)
     delay(100);
   }
 }
+
+
+
+
+
 
 
 
